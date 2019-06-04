@@ -68,63 +68,63 @@ class B2Math {
 		return a.x * b.y - a.y * b.x;
 	}
 
-	static public function crossVF(a:B2Vec2, s:Float):B2Vec2
+	static public function crossVF(a:B2Vec2, s:Float, result:B2Vec2):B2Vec2
 	{
-		var v:B2Vec2 = new B2Vec2(s * a.y, -s * a.x);
-		return v;
+		result.set(s * a.y, -s * a.x);
+		return result;
 	}
 
-	static public function crossFV(s:Float, a:B2Vec2):B2Vec2
+	static public function crossFV(s:Float, a:B2Vec2, result:B2Vec2):B2Vec2
 	{
-		var v:B2Vec2 = new B2Vec2(-s * a.y, s * a.x);
-		return v;
+		result.set(-s * a.y, s * a.x);
+		return result;
 	}
 
-	static public function mulMV(A:B2Mat22, v:B2Vec2):B2Vec2
+	static public function mulMV(A:B2Mat22, v:B2Vec2, result:B2Vec2):B2Vec2
 	{
 		// (tMat.col1.x * tVec.x + tMat.col2.x * tVec.y)
 		// (tMat.col1.y * tVec.x + tMat.col2.y * tVec.y)
-		var u:B2Vec2 = new B2Vec2(A.col1.x * v.x + A.col2.x * v.y, A.col1.y * v.x + A.col2.y * v.y);
-		return u;
+		result.set(A.col1.x * v.x + A.col2.x * v.y, A.col1.y * v.x + A.col2.y * v.y);
+		return result;
 	}
 
-	static public function mulTMV(A:B2Mat22, v:B2Vec2):B2Vec2
+	static public function mulTMV(A:B2Mat22, v:B2Vec2, result:B2Vec2):B2Vec2
 	{
 		// (tVec.x * tMat.col1.x + tVec.y * tMat.col1.y)
 		// (tVec.x * tMat.col2.x + tVec.y * tMat.col2.y)
-		var u:B2Vec2 = new B2Vec2(dot(v, A.col1), dot(v, A.col2));
-		return u;
+		result.set(dot(v, A.col1), dot(v, A.col2));
+		return result;
 	}
 	
-	static public function mulX(T:B2Transform, v:B2Vec2) : B2Vec2
+	static public function mulX(T:B2Transform, v:B2Vec2, result:B2Vec2) : B2Vec2
 	{
-		var a:B2Vec2 = mulMV(T.R, v);
-		a.x += T.position.x;
-		a.y += T.position.y;
+		mulMV(T.R, v, result);
+		result.x += T.position.x;
+		result.y += T.position.y;
 		//return T.position + b2Mul(T.R, v);
-		return a;
+		return result;
 	}
 
-	static public function mulXT(T:B2Transform, v:B2Vec2):B2Vec2
+	static public function mulXT(T:B2Transform, v:B2Vec2, result:B2Vec2):B2Vec2
 	{
-		var a:B2Vec2 = subtractVV(v, T.position);
+		result = subtractVV(v, T.position, result);
 		//return b2MulT(T.R, v - T.position);
-		var tX:Float = (a.x * T.R.col1.x + a.y * T.R.col1.y );
-		a.y = (a.x * T.R.col2.x + a.y * T.R.col2.y );
-		a.x = tX;
-		return a;
+		var tX:Float = (result.x * T.R.col1.x + result.y * T.R.col1.y );
+		result.y = (result.x * T.R.col2.x + result.y * T.R.col2.y );
+		result.x = tX;
+		return result;
 	}
 
-	static public function addVV(a:B2Vec2, b:B2Vec2):B2Vec2
+	static public function addVV(a:B2Vec2, b:B2Vec2, result:B2Vec2):B2Vec2
 	{
-		var v:B2Vec2 = new B2Vec2(a.x + b.x, a.y + b.y);
-		return v;
+		result.set(a.x + b.x, a.y + b.y);
+		return result;
 	}
 
-	static public function subtractVV(a:B2Vec2, b:B2Vec2):B2Vec2
+	static public function subtractVV(a:B2Vec2, b:B2Vec2, result:B2Vec2):B2Vec2
 	{
-		var v:B2Vec2 = new B2Vec2(a.x - b.x, a.y - b.y);
-		return v;
+		result.set(a.x - b.x, a.y - b.y);
+		return result;
 	}
 	
 	static public function distance(a:B2Vec2, b:B2Vec2) : Float{
@@ -139,22 +139,28 @@ class B2Math {
 		return (cX*cX + cY*cY);
 	}
 
-	static public function mulFV(s:Float, a:B2Vec2):B2Vec2
+	static public function mulFV(s:Float, a:B2Vec2, result:B2Vec2):B2Vec2
 	{
-		var v:B2Vec2 = new B2Vec2(s * a.x, s * a.y);
-		return v;
+		result.set(s * a.x, s * a.y);
+		return result;
 	}
 
 	static public function addMM(A:B2Mat22, B:B2Mat22):B2Mat22
 	{
-		var C:B2Mat22 = B2Mat22.fromVV(addVV(A.col1, B.col1), addVV(A.col2, B.col2));
+		//var C:B2Mat22 = B2Mat22.fromVV(addVV(A.col1, B.col1), addVV(A.col2, B.col2));
+		var C:B2Mat22 = new B2Mat22();
+		addVV(A.col1, B.col1, C.col1);
+		addVV(A.col2, B.col2, C.col2);
 		return C;
 	}
 
 	// A * B
 	static public function mulMM(A:B2Mat22, B:B2Mat22):B2Mat22
 	{
-		var C:B2Mat22 = B2Mat22.fromVV(mulMV(A, B.col1), mulMV(A, B.col2));
+		//var C:B2Mat22 = B2Mat22.fromVV(mulMV(A, B.col1), mulMV(A, B.col2));
+		var C:B2Mat22 = new B2Mat22();
+		mulMV(A, B.col1, C.col1);
+		mulMV(A, B.col2, C.col2);
 		return C;
 	}
 
@@ -172,15 +178,18 @@ class B2Math {
 		return a > 0.0 ? a : -a;
 	}
 
-	static public function absV(a:B2Vec2):B2Vec2
+	static public function absV(a:B2Vec2, result:B2Vec2):B2Vec2
 	{
-		var b:B2Vec2 = new B2Vec2(abs(a.x), abs(a.y));
-		return b;
+		result.set(abs(a.x), abs(a.y));
+		return result;
 	}
 
 	static public function absM(A:B2Mat22):B2Mat22
 	{
-		var B:B2Mat22 = B2Mat22.fromVV(absV(A.col1), absV(A.col2));
+		//var B:B2Mat22 = B2Mat22.fromVV(absV(A.col1), absV(A.col2));
+		var B:B2Mat22 = new B2Mat22();
+		absV(A.col1, B.col1);
+		absV(A.col2, B.col2);
 		return B;
 	}
 
@@ -189,10 +198,10 @@ class B2Math {
 		return a < b ? a : b;
 	}
 
-	static public function minV(a:B2Vec2, b:B2Vec2):B2Vec2
+	static public function minV(a:B2Vec2, b:B2Vec2, result:B2Vec2):B2Vec2
 	{
-		var c:B2Vec2 = new B2Vec2(min(a.x, b.x), min(a.y, b.y));
-		return c;
+		result.set(min(a.x, b.x), min(a.y, b.y));
+		return result;
 	}
 
 	static public function max(a:Float, b:Float):Float
@@ -200,10 +209,10 @@ class B2Math {
 		return a > b ? a : b;
 	}
 
-	static public function maxV(a:B2Vec2, b:B2Vec2):B2Vec2
+	static public function maxV(a:B2Vec2, b:B2Vec2, result:B2Vec2):B2Vec2
 	{
-		var c:B2Vec2 = new B2Vec2(max(a.x, b.x), max(a.y, b.y));
-		return c;
+		result.set(max(a.x, b.x), max(a.y, b.y));
+		return result;
 	}
 
 	static public function clamp(a:Float, low:Float, high:Float):Float
@@ -211,9 +220,9 @@ class B2Math {
 		return a < low ? low : a > high ? high : a;
 	}
 
-	static public function clampV(a:B2Vec2, low:B2Vec2, high:B2Vec2):B2Vec2
+	static public function clampV(a:B2Vec2, low:B2Vec2, high:B2Vec2, result:B2Vec2):B2Vec2
 	{
-		return maxV(low, minV(a, high));
+		return maxV(low, minV(a, high, result), result);
 	}
 
 	static public function swap(a:Array <Dynamic>, b:Array <Dynamic>) : Void

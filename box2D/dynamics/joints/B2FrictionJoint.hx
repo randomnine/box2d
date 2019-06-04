@@ -248,7 +248,7 @@ class B2FrictionJoint extends B2Joint
 			var CdotX:Float = vB.x - wB * rBY - vA.x + wA * rAY;
 			var CdotY:Float = vB.y + wB * rBX - vA.y - wA * rAX;
 
-			var impulseV:B2Vec2 = B2Math.mulMV(m_linearMass, new B2Vec2(-CdotX, -CdotY));
+			var impulseV:B2Vec2 = B2Math.mulMV(m_linearMass, new B2Vec2(-CdotX, -CdotY), new B2Vec2());
 			var oldImpulseV:B2Vec2 = m_linearImpulse.copy();
 			
 			m_linearImpulse.add(impulseV);
@@ -261,7 +261,7 @@ class B2FrictionJoint extends B2Joint
 				m_linearImpulse.multiply(maxImpulse);
 			}
 
-			impulseV = B2Math.subtractVV(m_linearImpulse, oldImpulseV);
+			impulseV = B2Math.subtractVV(m_linearImpulse, oldImpulseV, impulseV);
 
 			vA.x -= mA * impulseV.x;
 			vA.y -= mA * impulseV.y;

@@ -41,17 +41,19 @@ class B2AABB
 	}
 	
 	/** Get the center of the AABB. */
-	public function getCenter():B2Vec2
+	public function getCenter(result:B2Vec2):B2Vec2
 	{
-		return new B2Vec2( (lowerBound.x + upperBound.x) / 2,
-		                   (lowerBound.y + upperBound.y) / 2);
+		result.set( (lowerBound.x + upperBound.x) / 2,
+		            (lowerBound.y + upperBound.y) / 2);
+		return result;
 	}
 	
 	/** Get the extents of the AABB (half-widths). */
-	public function getExtents():B2Vec2
+	public function getExtents(result:B2Vec2):B2Vec2
 	{
-		return new B2Vec2( (upperBound.x - lowerBound.x) / 2,
-		                   (upperBound.y - lowerBound.y) / 2);
+		result.set( (upperBound.x - lowerBound.x) / 2,
+		            (upperBound.y - lowerBound.y) / 2);
+		return result;
 	}
 	
 	/**
@@ -211,12 +213,17 @@ class B2AABB
 		upperBound.x = Math.max(aabb1.upperBound.x, aabb2.upperBound.x);
 		upperBound.y = Math.max(aabb1.upperBound.y, aabb2.upperBound.y);
 	}
+
+	public function setAABB(other:B2AABB):Void
+	{
+		lowerBound.setV(other.lowerBound);
+		upperBound.setV(other.upperBound);
+	}
 	
 	public function new () {
 		
 		lowerBound = new B2Vec2();
 		upperBound = new B2Vec2();
-		
 	}
 
 	/** The lower vertex */

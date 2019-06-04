@@ -335,19 +335,20 @@ class B2Fixture
 		m_proxy = null;
 	}
 	
+	private static var s_syncAABB1:B2AABB = new B2AABB();
+	private static var s_syncAABB2:B2AABB = new B2AABB();
+	private static var s_syncDisplacement:B2Vec2 = new B2Vec2();
 	public function synchronize(broadPhase:IBroadPhase, transform1:B2Transform, transform2:B2Transform):Void
 	{
 		if (m_proxy == null)
 			return;
 			
 		// Compute an AABB that ocvers the swept shape (may miss some rotation effect)
-		var aabb1:B2AABB = new B2AABB();
-		var aabb2:B2AABB = new B2AABB();
-		m_shape.computeAABB(aabb1, transform1);
-		m_shape.computeAABB(aabb2, transform2);
+		m_shape.computeAABB(s_syncAABB1, transform1);
+		m_shape.computeAABB(s_syncAABB2, transform2);
 		
-		m_aabb.combine(aabb1, aabb2);
-		var displacement:B2Vec2 = B2Math.subtractVV(transform2.position, transform1.position);
+		m_aabb.combine(s_syncAABB1, s_syncAABB2);
+		var displacement:B2Vec2 = B2Math.subtractVV(transform2.position, transform1.position, s_syncDisplacement);
 		broadPhase.moveProxy(m_proxy, m_aabb, displacement);
 	}
 	

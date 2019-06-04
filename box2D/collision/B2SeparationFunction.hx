@@ -88,7 +88,7 @@ class B2SeparationFunction
 			localPointB = m_proxyB.getVertex(cache.indexB[0]);
 			m_localPoint.x = 0.5 * (localPointA1.x + localPointA2.x);
 			m_localPoint.y = 0.5 * (localPointA1.y + localPointA2.y);
-			m_axis = B2Math.crossVF(B2Math.subtractVV(localPointA2, localPointA1), 1.0);
+			B2Math.crossVF(B2Math.subtractVV(localPointA2, localPointA1, m_axis), 1.0, m_axis);
 			m_axis.normalize();
 			
 			//normal = b2Math.b2MulMV(transformA.R, m_axis);
@@ -123,7 +123,7 @@ class B2SeparationFunction
 			localPointA = m_proxyA.getVertex(cache.indexA[0]);
 			m_localPoint.x = 0.5 * (localPointB1.x + localPointB2.x);
 			m_localPoint.y = 0.5 * (localPointB1.y + localPointB2.y);
-			m_axis = B2Math.crossVF(B2Math.subtractVV(localPointB2, localPointB1), 1.0);
+			B2Math.crossVF(B2Math.subtractVV(localPointB2, localPointB1, m_axis), 1.0, m_axis);
 			m_axis.normalize();
 			
 			//normal = b2Math.b2MulMV(transformB.R, m_axis);
@@ -158,14 +158,14 @@ class B2SeparationFunction
 			localPointB1 = m_proxyB.getVertex(cache.indexB[0]);
 			localPointB2 = m_proxyB.getVertex(cache.indexB[1]);
 			
-			var pA:B2Vec2 = B2Math.mulX(transformA, localPointA);
-			var dA:B2Vec2 = B2Math.mulMV(transformA.R, B2Math.subtractVV(localPointA2, localPointA1));
-			var pB:B2Vec2 = B2Math.mulX(transformB, localPointB);
-			var dB:B2Vec2 = B2Math.mulMV(transformB.R, B2Math.subtractVV(localPointB2, localPointB1));
+			var pA:B2Vec2 = B2Math.mulX(transformA, localPointA, new B2Vec2());
+			var dA:B2Vec2 = B2Math.mulMV(transformA.R, B2Math.subtractVV(localPointA2, localPointA1, new B2Vec2()), new B2Vec2());
+			var pB:B2Vec2 = B2Math.mulX(transformB, localPointB, new B2Vec2());
+			var dB:B2Vec2 = B2Math.mulMV(transformB.R, B2Math.subtractVV(localPointB2, localPointB1, new B2Vec2()), new B2Vec2());
 			
 			var a:Float = dA.x * dA.x + dA.y * dA.y;
 			var e:Float = dB.x * dB.x + dB.y * dB.y;
-			var r:B2Vec2 = B2Math.subtractVV(dB, dA);
+			var r:B2Vec2 = B2Math.subtractVV(dB, dA, new B2Vec2());
 			var c:Float = dA.x * r.x + dA.y * r.y;
 			var f:Float = dB.x * r.x + dB.y * r.y;
 			
@@ -197,7 +197,7 @@ class B2SeparationFunction
 			if (s == 0.0 || s == 1.0)
 			{
 				m_type = B2SeparationFunctionType.FACE_B;
-				m_axis = B2Math.crossVF(B2Math.subtractVV(localPointB2, localPointB1), 1.0);
+				B2Math.crossVF(B2Math.subtractVV(localPointB2, localPointB1, m_axis), 1.0, m_axis);
 				m_axis.normalize();
                 
 				m_localPoint = localPointB;
@@ -228,7 +228,7 @@ class B2SeparationFunction
 			else
 			{
 				m_type = B2SeparationFunctionType.FACE_A;
-				m_axis = B2Math.crossVF(B2Math.subtractVV(localPointA2, localPointA1), 1.0);
+				B2Math.crossVF(B2Math.subtractVV(localPointA2, localPointA1, m_axis), 1.0, m_axis);
 				
 				m_localPoint = localPointA;
 				
@@ -257,57 +257,57 @@ class B2SeparationFunction
 			}
 		}
 	}
-	
+
+	private static var s_axisA:B2Vec2 = new B2Vec2();
+	private static var s_axisB:B2Vec2 = new B2Vec2();
+	private static var s_pointA:B2Vec2 = new B2Vec2();
+	private static var s_pointB:B2Vec2 = new B2Vec2();
+	private static var s_normal:B2Vec2 = new B2Vec2();
 	public function evaluate(transformA:B2Transform, transformB:B2Transform):Float
 	{
-		var axisA:B2Vec2;
-		var axisB:B2Vec2;
 		var localPointA:B2Vec2;
 		var localPointB:B2Vec2;
-		var pointA:B2Vec2;
-		var pointB:B2Vec2;
 		var seperation:Float;
-		var normal:B2Vec2;
 		switch(m_type)
 		{
 			case POINTS:
 			{
-				axisA = B2Math.mulTMV(transformA.R, m_axis);
-				axisB = B2Math.mulTMV(transformB.R, m_axis.getNegative());
-				localPointA = m_proxyA.getSupportVertex(axisA);
-				localPointB = m_proxyB.getSupportVertex(axisB);
-				pointA = B2Math.mulX(transformA, localPointA);
-				pointB = B2Math.mulX(transformB, localPointB);
+				B2Math.mulTMV(transformA.R, m_axis, s_axisA);
+				B2Math.mulTMV(transformB.R, m_axis.getNegative(s_axisB), s_axisB);
+				localPointA = m_proxyA.getSupportVertex(s_axisA);
+				localPointB = m_proxyB.getSupportVertex(s_axisB);
+				B2Math.mulX(transformA, localPointA, s_pointA);
+				B2Math.mulX(transformB, localPointB, s_pointB);
 				//float32 separation = b2Dot(pointB - pointA, m_axis);
-				seperation = (pointB.x - pointA.x) * m_axis.x + (pointB.y - pointA.y) * m_axis.y;
+				seperation = (s_pointB.x - s_pointA.x) * m_axis.x + (s_pointB.y - s_pointA.y) * m_axis.y;
 				return seperation;
 			}
 			case FACE_A:
 			{
-				normal = B2Math.mulMV(transformA.R, m_axis);
-				pointA = B2Math.mulX(transformA, m_localPoint);
+				B2Math.mulMV(transformA.R, m_axis, s_normal);
+				B2Math.mulX(transformA, m_localPoint, s_pointA);
 				
-				axisB = B2Math.mulTMV(transformB.R, normal.getNegative());
+				B2Math.mulTMV(transformB.R, s_normal.getNegative(s_axisB), s_axisB);
 				
-				localPointB = m_proxyB.getSupportVertex(axisB);
-				pointB = B2Math.mulX(transformB, localPointB);
+				localPointB = m_proxyB.getSupportVertex(s_axisB);
+				B2Math.mulX(transformB, localPointB, s_pointB);
 				
 				//float32 separation = b2Dot(pointB - pointA, normal);
-				seperation = (pointB.x - pointA.x) * normal.x + (pointB.y - pointA.y) * normal.y;
+				seperation = (s_pointB.x - s_pointA.x) * s_normal.x + (s_pointB.y - s_pointA.y) * s_normal.y;
 				return seperation;
 			}
 			case FACE_B:
 			{
-				normal = B2Math.mulMV(transformB.R, m_axis);
-				pointB = B2Math.mulX(transformB, m_localPoint);
+				B2Math.mulMV(transformB.R, m_axis, s_normal);
+				B2Math.mulX(transformB, m_localPoint, s_pointB);
 				
-				axisA = B2Math.mulTMV(transformA.R, normal.getNegative());
+				B2Math.mulTMV(transformA.R, s_normal.getNegative(s_axisA), s_axisA);
 				
-				localPointA = m_proxyA.getSupportVertex(axisA);
-				pointA = B2Math.mulX(transformA, localPointA);
+				localPointA = m_proxyA.getSupportVertex(s_axisA);
+				B2Math.mulX(transformA, localPointA, s_pointA);
 				
 				//float32 separation = b2Dot(pointA - pointB, normal);
-				seperation = (pointA.x - pointB.x) * normal.x + (pointA.y - pointB.y) * normal.y;
+				seperation = (s_pointA.x - s_pointB.x) * s_normal.x + (s_pointA.y - s_pointB.y) * s_normal.y;
 				return seperation;
 			}
 			//default:

@@ -803,8 +803,8 @@ class B2World
 				var fixtureA:B2Fixture = contact.getFixtureA();
 				var fixtureB:B2Fixture = contact.getFixtureB();
 
-				var cA:B2Vec2 = fixtureA.getAABB().getCenter();
-				var cB:B2Vec2 = fixtureB.getAABB().getCenter();
+				var cA:B2Vec2 = fixtureA.getAABB().getCenter(new B2Vec2());
+				var cB:B2Vec2 = fixtureB.getAABB().getCenter(new B2Vec2());
 
 				m_debugDraw.drawSegment(cA, cB, color);
 				contact = contact.getNext();
@@ -1676,7 +1676,7 @@ class B2World
 			{
 				var circle:B2CircleShape = cast (shape, B2CircleShape);
 				
-				var center:B2Vec2 = B2Math.mulX(xf, circle.m_p);
+				var center:B2Vec2 = B2Math.mulX(xf, circle.m_p, new B2Vec2());
 				var radius:Float = circle.m_radius;
 				var axis:B2Vec2 = xf.R.col1;
 				
@@ -1694,7 +1694,7 @@ class B2World
 				
 				for (i in 0...vertexCount)
 				{
-					vertices[i] = B2Math.mulX(xf, localVertices[i]);
+					vertices[i] = B2Math.mulX(xf, localVertices[i], new B2Vec2());
 				}
 				
 				m_debugDraw.drawSolidPolygon(vertices, vertexCount, color);
@@ -1704,7 +1704,7 @@ class B2World
 			{
 				var edge: B2EdgeShape = cast (shape, B2EdgeShape);
 				
-				m_debugDraw.drawSegment(B2Math.mulX(xf, edge.getVertex1()), B2Math.mulX(xf, edge.getVertex2()), color);
+				m_debugDraw.drawSegment(B2Math.mulX(xf, edge.getVertex1(), new B2Vec2()), B2Math.mulX(xf, edge.getVertex2(), new B2Vec2()), color);
 				
 			}
 		default:

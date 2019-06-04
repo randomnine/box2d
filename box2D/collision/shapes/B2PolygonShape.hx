@@ -110,9 +110,9 @@ class B2PolygonShape extends B2Shape
 		{
 			var i1:Int = i;
 			var i2:Int = i + 1 < m_vertexCount ? i + 1 : 0;
-			var edge:B2Vec2 = B2Math.subtractVV(m_vertices[i2], m_vertices[i1]);
+			var edge:B2Vec2 = B2Math.subtractVV(m_vertices[i2], m_vertices[i1], new B2Vec2());
 			B2Settings.b2Assert(edge.lengthSquared() > B2Math.MIN_VALUE /* * Number.MIN_VALUE*/);
-			m_normals[i].setV(B2Math.crossVF(edge, 1.0));
+			B2Math.crossVF(edge, 1.0, m_normals[i]);
 			m_normals[i].normalize();
 		}
 
@@ -183,8 +183,8 @@ class B2PolygonShape extends B2Shape
 		// Transform vertices and normals.
 		for (i in 0...m_vertexCount)
 		{
-			m_vertices[i] = B2Math.mulX(xf, m_vertices[i]);
-			m_normals[i] = B2Math.mulMV(xf.R, m_normals[i]);
+			B2Math.mulX(xf, m_vertices[i], m_vertices[i]);
+			B2Math.mulMV(xf.R, m_normals[i], m_normals[i]);
 		}
 	}
 	
@@ -206,7 +206,7 @@ class B2PolygonShape extends B2Shape
 		m_vertices[1].setV(v2);
 		m_centroid.x = 0.5 * (v1.x + v2.x);
 		m_centroid.y = 0.5 * (v1.y + v2.y);
-		m_normals[0] = B2Math.crossVF(B2Math.subtractVV(v2, v1), 1.0);
+		B2Math.crossVF(B2Math.subtractVV(v2, v1, m_normals[0]), 1.0, m_normals[0]);
 		m_normals[0].normalize();
 		m_normals[1].x = -m_normals[0].x;
 		m_normals[1].y = -m_normals[0].y;
@@ -515,7 +515,7 @@ class B2PolygonShape extends B2Shape
 			c:B2Vec2):Float
 	{
 		// Transform plane into shape co-ordinates
-		var normalL:B2Vec2 = B2Math.mulTMV(xf.R, normal);
+		var normalL:B2Vec2 = B2Math.mulTMV(xf.R, normal, new B2Vec2());
 		var offsetL:Float = offset - B2Math.dot(normal, xf.position);
 		
 		var depths:Array <Float> = new Array <Float>();
@@ -558,7 +558,7 @@ class B2PolygonShape extends B2Shape
 				// Completely submerged
 				var md:B2MassData = new B2MassData();
 				computeMass(md, 1);
-				c.setV(B2Math.mulX(xf, md.center));
+				B2Math.mulX(xf, md.center, c);
 				return md.mass;
 			}
 			else
@@ -615,7 +615,7 @@ class B2PolygonShape extends B2Shape
 		
 		//Normalize and transform centroid
 		center.multiply(1 / area);
-		c.setV(B2Math.mulX(xf, center));
+		B2Math.mulX(xf, center, c);
 		
 		return area;
 	}

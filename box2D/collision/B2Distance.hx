@@ -38,6 +38,7 @@ private static var b2_gjkCalls:Int = 0;
 private static var b2_gjkIters:Int = 0;
 private static var b2_gjkMaxIters:Int = 0;
 
+private static var s_vec:B2Vec2 = new B2Vec2();
 private static var s_simplex:B2Simplex = new B2Simplex();
 private static var s_saveA:Array <Int> = new Array <Int> ();
 private static var s_saveB:Array <Int> = new Array <Int> ();
@@ -65,7 +66,7 @@ public static function distance(output:B2DistanceOutput, cache:B2SimplexCache, i
 	var saveB:Array <Int> = s_saveB;
 	var saveCount:Int = 0;
 	
-	var closestPoint:B2Vec2 = simplex.getClosestPoint();
+	var closestPoint:B2Vec2 = simplex.getClosestPoint(new B2Vec2());
 	var distanceSqr1:Float = closestPoint.lengthSquared();
 	var distanceSqr2:Float = distanceSqr1;
 	
@@ -106,7 +107,7 @@ public static function distance(output:B2DistanceOutput, cache:B2SimplexCache, i
 		}
 		
 		// Compute the closest point.
-		p = simplex.getClosestPoint();
+		p = simplex.getClosestPoint(new B2Vec2());
 		distanceSqr2 = p.lengthSquared();
 		
 		
@@ -118,7 +119,7 @@ public static function distance(output:B2DistanceOutput, cache:B2SimplexCache, i
 		distanceSqr1 = distanceSqr2;
 		
 		// Get search direction.
-		var d:B2Vec2 = simplex.getSearchDirection();
+		var d:B2Vec2 = simplex.getSearchDirection(new B2Vec2());
 		
 		// Ensure the search direction is numerically fit.
 		if (d.lengthSquared() < B2Math.MIN_VALUE * B2Math.MIN_VALUE)
@@ -134,11 +135,11 @@ public static function distance(output:B2DistanceOutput, cache:B2SimplexCache, i
 		
 		// Compute a tentative new simplex vertex using support points
 		var vertex:B2SimplexVertex = vertices[simplex.m_count];
-		vertex.indexA = Std.int (proxyA.getSupport(B2Math.mulTMV(transformA.R, d.getNegative())));
-		vertex.wA = B2Math.mulX(transformA, proxyA.getVertex(vertex.indexA));
-		vertex.indexB = Std.int (proxyB.getSupport(B2Math.mulTMV(transformB.R, d)));
-		vertex.wB = B2Math.mulX(transformB, proxyB.getVertex(vertex.indexB));
-		vertex.w = B2Math.subtractVV(vertex.wB, vertex.wA);
+		vertex.indexA = Std.int (proxyA.getSupport(B2Math.mulTMV(transformA.R, d.getNegative(s_vec), s_vec)));
+		B2Math.mulX(transformA, proxyA.getVertex(vertex.indexA), vertex.wA);
+		vertex.indexB = Std.int (proxyB.getSupport(B2Math.mulTMV(transformB.R, d, s_vec)));
+		B2Math.mulX(transformB, proxyB.getVertex(vertex.indexB), vertex.wB);
+		B2Math.subtractVV(vertex.wB, vertex.wA, vertex.w);
 		
 		// Iteration count is equated to the number of support point calls.
 		++iter;
@@ -169,7 +170,7 @@ public static function distance(output:B2DistanceOutput, cache:B2SimplexCache, i
 	
 	// Prepare output
 	simplex.getWitnessPoints(output.pointA, output.pointB);
-	output.distance = B2Math.subtractVV(output.pointA, output.pointB).length();
+	output.distance = B2Math.subtractVV(output.pointA, output.pointB, s_vec).length();
 	output.iterations = iter;
 	
 	// Cache the simplex
@@ -186,7 +187,7 @@ public static function distance(output:B2DistanceOutput, cache:B2SimplexCache, i
 			// Shapes are still not overlapped.
 			// Move the witness points to the outer surface.
 			output.distance -= rA + rB;
-			var normal:B2Vec2 = B2Math.subtractVV(output.pointB, output.pointA);
+			var normal:B2Vec2 = B2Math.subtractVV(output.pointB, output.pointA, s_vec);
 			normal.normalize();
 			output.pointA.x += rA * normal.x;
 			output.pointA.y += rA * normal.y;

@@ -60,9 +60,9 @@ public function readCache(cache:B2SimplexCache,
 		v.indexB = cache.indexB[i];
 		wALocal = proxyA.getVertex(v.indexA);
 		wBLocal = proxyB.getVertex(v.indexB);
-		v.wA = B2Math.mulX(transformA, wALocal);
-		v.wB = B2Math.mulX(transformB, wBLocal);
-		v.w = B2Math.subtractVV(v.wB, v.wA);
+		B2Math.mulX(transformA, wALocal, v.wA);
+		B2Math.mulX(transformB, wBLocal, v.wB);
+		B2Math.subtractVV(v.wB, v.wA, v.w);
 		v.a = 0;
 	}
 	
@@ -87,9 +87,9 @@ public function readCache(cache:B2SimplexCache,
 		v.indexB = 0;
 		wALocal = proxyA.getVertex(0);
 		wBLocal = proxyB.getVertex(0);
-		v.wA = B2Math.mulX(transformA, wALocal);
-		v.wB = B2Math.mulX(transformB, wBLocal);
-		v.w = B2Math.subtractVV(v.wB, v.wA);
+		B2Math.mulX(transformA, wALocal, v.wA);
+		B2Math.mulX(transformB, wBLocal, v.wB);
+		B2Math.subtractVV(v.wB, v.wA, v.w);
 		m_count = 1;
 	}
 }
@@ -106,48 +106,53 @@ public function writeCache(cache:B2SimplexCache):Void
 	}
 }
 
-public function getSearchDirection():B2Vec2
+public function getSearchDirection(result:B2Vec2):B2Vec2
 {
 	switch(m_count)
 	{
 		case 1:
-			return m_v1.w.getNegative();
+			return m_v1.w.getNegative(result);
 			
 		case 2:
 		{
-			var e12:B2Vec2 = B2Math.subtractVV(m_v2.w, m_v1.w);
-			var sgn:Float = B2Math.crossVV(e12, m_v1.w.getNegative());
+			var e12:B2Vec2 = B2Math.subtractVV(m_v2.w, m_v1.w, s_tempVector1);
+			var sgn:Float = B2Math.crossVV(e12, m_v1.w.getNegative(s_tempVector2));
 			if (sgn > 0.0)
 			{
 				// Origin is left of e12.
-				return B2Math.crossFV(1.0, e12);
+				return B2Math.crossFV(1.0, e12, result);
 			}else {
 				// Origin is right of e12.
-				return B2Math.crossVF(e12, 1.0);
+				return B2Math.crossVF(e12, 1.0, result);
 			}
 		}
 		default:
 		B2Settings.b2Assert(false);
-		return new B2Vec2();
+		result.set(0, 0);
+		return result;
 	}
 }
 
-public function getClosestPoint():B2Vec2
+public function getClosestPoint(result:B2Vec2):B2Vec2
 {
 	switch(m_count)
 	{
 		case 0:
 			B2Settings.b2Assert(false);
-			return new B2Vec2();
+			result.set(0, 0);
+			return result;
 		case 1:
-			return m_v1.w;
+			result.setV(m_v1.w);
+			return result;
 		case 2:
-			return new B2Vec2(
+			result.set(
 					m_v1.a * m_v1.w.x + m_v2.a * m_v2.w.x,
 					m_v1.a * m_v1.w.y + m_v2.a * m_v2.w.y);
+			return result;
 		default:
 			B2Settings.b2Assert(false);
-			return new B2Vec2();
+			result.set(0, 0);
+			return result;
 	}
 }
 
@@ -190,10 +195,10 @@ public function getMetric():Float
 		return 0.0;
 
 	case 2:
-		return B2Math.subtractVV(m_v1.w, m_v2.w).length();
+		return B2Math.subtractVV(m_v1.w, m_v2.w, s_tempVector1).length();
 
 	case 3:
-		return B2Math.crossVV(B2Math.subtractVV(m_v2.w, m_v1.w),B2Math.subtractVV(m_v3.w, m_v1.w));
+		return B2Math.crossVV(B2Math.subtractVV(m_v2.w, m_v1.w, s_tempVector1),B2Math.subtractVV(m_v3.w, m_v1.w, s_tempVector2));
 
 	default:
 		B2Settings.b2Assert(false);
@@ -228,7 +233,7 @@ public function solve2():Void
 {
 	var w1:B2Vec2 = m_v1.w;
 	var w2:B2Vec2 = m_v2.w;
-	var e12:B2Vec2 = B2Math.subtractVV(w2, w1);
+	var e12:B2Vec2 = B2Math.subtractVV(w2, w1, s_tempVector1);
 	
 	// w1 region
 	var d12_2:Float = -(w1.x * e12.x + w1.y * e12.y);
@@ -268,7 +273,7 @@ public function solve3():Void
 	// [1      1     ][a1] = [1]
 	// [w1.e12 w2.e12][a2] = [0]
 	// a3 = 0
-	var e12:B2Vec2 = B2Math.subtractVV(w2, w1);
+	var e12:B2Vec2 = B2Math.subtractVV(w2, w1, s_tempVector1);
 	var w1e12:Float = B2Math.dot(w1, e12);
 	var w2e12:Float = B2Math.dot(w2, e12);
 	var d12_1:Float = w2e12;
@@ -278,7 +283,7 @@ public function solve3():Void
 	// [1      1     ][a1] = [1]
 	// [w1.e13 w3.e13][a3] = [0]
 	// a2 = 0
-	var e13:B2Vec2 = B2Math.subtractVV(w3, w1);
+	var e13:B2Vec2 = B2Math.subtractVV(w3, w1, s_tempVector2);
 	var w1e13:Float = B2Math.dot(w1, e13);
 	var w3e13:Float = B2Math.dot(w3, e13);
 	var d13_1:Float = w3e13;
@@ -288,7 +293,7 @@ public function solve3():Void
 	// [1      1     ][a2] = [1]
 	// [w2.e23 w3.e23][a3] = [0]
 	// a1 = 0
-	var e23:B2Vec2 = B2Math.subtractVV(w3, w2);
+	var e23:B2Vec2 = B2Math.subtractVV(w3, w2, s_tempVector3);
 	var w2e23:Float = B2Math.dot(w2, e23);
 	var w3e23:Float = B2Math.dot(w3, e23);
 	var d23_1:Float = w3e23;
@@ -367,6 +372,9 @@ public function solve3():Void
 	m_count = 3;
 }
 
+private static var s_tempVector1:B2Vec2 = new B2Vec2();
+private static var s_tempVector2:B2Vec2 = new B2Vec2();
+private static var s_tempVector3:B2Vec2 = new B2Vec2();
 public var m_v1:B2SimplexVertex;
 public var m_v2:B2SimplexVertex;
 public var m_v3:B2SimplexVertex;

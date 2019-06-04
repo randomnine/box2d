@@ -31,7 +31,7 @@ class B2Vec2
 	public function set(x_:Float=0, y_:Float=0) : Void {x=x_; y=y_;}
 	public function setV(v:B2Vec2) : Void {x=v.x; y=v.y;}
 
-	public function getNegative():B2Vec2 { return new B2Vec2(-x, -y); }
+	public function getNegative(result:B2Vec2):B2Vec2 { result.set( -x, -y); return result; }
 	public function negativeSelf():Void { x = -x; y = -y; }
 	
 	static public function make(x_:Float, y_:Float):B2Vec2

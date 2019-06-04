@@ -24,7 +24,13 @@ import box2D.common.math.B2Vec2;
 
 class B2SimplexVertex
 {
-	public function new () {}
+	public function new ()
+	{
+		wA = new B2Vec2();
+		wB = new B2Vec2();
+		w = new B2Vec2();
+	}
+	
 	public function set(other:B2SimplexVertex):Void
 	{
 		wA.setV(other.wA);

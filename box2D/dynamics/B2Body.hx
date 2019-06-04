@@ -41,16 +41,20 @@ import box2D.dynamics.joints.B2JointEdge;
 */
 class B2Body
 {
-
+	private static var s_tempVector1:B2Vec2 = new B2Vec2();
+	private static var s_tempVector2:B2Vec2 = new B2Vec2();
+	private static var s_tempVector3:B2Vec2 = new B2Vec2();
+	
 	private function connectEdges(s1: B2EdgeShape, s2: B2EdgeShape, angle1: Float): Float
 	{
 		var angle2: Float = Math.atan2(s2.getDirectionVector().y, s2.getDirectionVector().x);
 		var coreOffset: Float = Math.tan((angle2 - angle1) * 0.5);
-		var core: B2Vec2 = B2Math.mulFV(coreOffset, s2.getDirectionVector());
-		core = B2Math.subtractVV(core, s2.getNormalVector());
-		core = B2Math.mulFV(B2Settings.b2_toiSlop, core);
-		core = B2Math.addVV(core, s2.getVertex1());
-		var cornerDir: B2Vec2 = B2Math.addVV(s1.getDirectionVector(), s2.getDirectionVector());
+		var core: B2Vec2 = B2Math.mulFV(coreOffset, s2.getDirectionVector(), s_tempVector1);
+		B2Math.subtractVV(core, s2.getNormalVector(), core);
+		B2Math.mulFV(B2Settings.b2_toiSlop, core, core);
+		B2Math.addVV(core, s2.getVertex1(), core);
+		
+		var cornerDir: B2Vec2 = B2Math.addVV(s1.getDirectionVector(), s2.getDirectionVector(), s_tempVector2);
 		cornerDir.normalize();
 		var convex: Bool = B2Math.dot(s1.getDirectionVector(), s2.getNormalVector()) > 0.0;
 		s1.setNextEdge(s2, core, cornerDir, convex);
@@ -546,11 +550,11 @@ class B2Body
 		
 		var velocity1:B2Vec2 = B2Math.addVV(linearVelocity, 
 			B2Math.crossFV(angularVelocity,
-				B2Math.subtractVV(center1, center)));
+				B2Math.subtractVV(center1, center, s_tempVector1), s_tempVector3), s_tempVector1);
 				
 		var velocity2:B2Vec2 = B2Math.addVV(linearVelocity, 
 			B2Math.crossFV(angularVelocity,
-				B2Math.subtractVV(center2, center)));
+				B2Math.subtractVV(center2, center, s_tempVector2), s_tempVector3), s_tempVector2);
 				
 		body1.setLinearVelocity(velocity1);
 		body2.setLinearVelocity(velocity2);
@@ -682,7 +686,7 @@ class B2Body
 		// Move center of mass
 		var oldCenter:B2Vec2 = m_sweep.c.copy();
 		m_sweep.localCenter.setV(massData.center);
-		m_sweep.c0.setV(B2Math.mulX(m_xf, m_sweep.localCenter));
+		B2Math.mulX(m_xf, m_sweep.localCenter, m_sweep.c0);
 		m_sweep.c.setV(m_sweep.c0);
 		
 		// Update center of mass velocity
@@ -764,7 +768,7 @@ class B2Body
 		// Move center of mass
 		var oldCenter:B2Vec2 = m_sweep.c.copy();
 		m_sweep.localCenter.setV(center);
-		m_sweep.c0.setV(B2Math.mulX(m_xf, m_sweep.localCenter));
+		B2Math.mulX(m_xf, m_sweep.localCenter, m_sweep.c0);
 		m_sweep.c.setV(m_sweep.c0);
 		
 		// Update center of mass velocity
@@ -795,7 +799,7 @@ class B2Body
 	 * @return the same vector expressed in world coordinates.
 	 */
 	public function getWorldVector(localVector:B2Vec2) : B2Vec2{
-		return B2Math.mulMV(m_xf.R, localVector);
+		return B2Math.mulMV(m_xf.R, localVector, new B2Vec2());
 	}
 
 	/**
@@ -804,7 +808,7 @@ class B2Body
 	 * @return the corresponding local point relative to the body's origin.
 	 */
 	public function getLocalPoint(worldPoint:B2Vec2) : B2Vec2{
-		return B2Math.mulXT(m_xf, worldPoint);
+		return B2Math.mulXT(m_xf, worldPoint, new B2Vec2());
 	}
 
 	/**
@@ -813,7 +817,7 @@ class B2Body
 	 * @return the corresponding local vector.
 	 */
 	public function getLocalVector(worldVector:B2Vec2) : B2Vec2{
-		return B2Math.mulTMV(m_xf.R, worldVector);
+		return B2Math.mulTMV(m_xf.R, worldVector, new B2Vec2());
 	}
 	
 	/**

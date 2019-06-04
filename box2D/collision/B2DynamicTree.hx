@@ -218,6 +218,9 @@ class B2DynamicTree
 	 * It should be of signature:
 	 * <code>function callback(input:B2RayCastInput, proxy:*):Void</code>
 	 */
+	private static var s_r:B2Vec2 = new B2Vec2();
+	private static var s_v:B2Vec2 = new B2Vec2();
+	private static var s_abs_v:B2Vec2 = new B2Vec2();
 	public function rayCast(callbackMethod:B2RayCastInput -> Dynamic -> Dynamic, input:B2RayCastInput):Void
 	{
 		if (m_root == null)
@@ -225,13 +228,13 @@ class B2DynamicTree
 			
 		var p1:B2Vec2 = input.p1;
 		var p2:B2Vec2 = input.p2;
-		var r:B2Vec2 = B2Math.subtractVV(p1, p2);
+		var r:B2Vec2 = B2Math.subtractVV(p1, p2, s_r);
 		//b2Settings.b2Assert(r.LengthSquared() > 0.0);
 		r.normalize();
 		
 		// v is perpendicular to the segment
-		var v:B2Vec2 = B2Math.crossFV(1.0, r);
-		var abs_v:B2Vec2 = B2Math.absV(v);
+		var v:B2Vec2 = B2Math.crossFV(1.0, r, s_v);
+		var abs_v:B2Vec2 = B2Math.absV(v, s_abs_v);
 		
 		var maxFraction:Float = input.maxFraction;
 		
@@ -265,8 +268,8 @@ class B2DynamicTree
 			// Separating axis for segment (Gino, p80)
 			// |dot(v, p1 - c)| > dot(|v|,h)
 			
-			var c:B2Vec2 = node.aabb.getCenter();
-			var h:B2Vec2 = node.aabb.getExtents();
+			var c:B2Vec2 = node.aabb.getCenter(new B2Vec2());
+			var h:B2Vec2 = node.aabb.getExtents(new B2Vec2());
 			var separation:Float = Math.abs(v.x * (p1.x - c.x) + v.y * (p1.y - c.y))
 									- abs_v.x * h.x - abs_v.y * h.y;
 			if (separation > 0.0)
@@ -327,7 +330,8 @@ class B2DynamicTree
 		node.parent = m_freeList;
 		m_freeList = node;
 	}
-	
+
+	private static var s_leafCenter:B2Vec2 = new B2Vec2();
 	private function insertLeaf(leaf:B2DynamicTreeNode):Void
 	{
 		++m_insertionCount;
@@ -339,7 +343,7 @@ class B2DynamicTree
 			return;
 		}
 		
-		var center:B2Vec2 = leaf.aabb.getCenter();
+		leaf.aabb.getCenter(s_leafCenter);
 		var sibling:B2DynamicTreeNode = m_root;
 		if (sibling.isLeaf() == false)
 		{
@@ -353,10 +357,10 @@ class B2DynamicTree
 				//float32 norm1 = delta1.x + delta1.y;
 				//float32 norm2 = delta2.x + delta2.y;
 				
-				var norm1:Float = Math.abs((child1.aabb.lowerBound.x + child1.aabb.upperBound.x) / 2 - center.x)
-								 + Math.abs((child1.aabb.lowerBound.y + child1.aabb.upperBound.y) / 2 - center.y);
-				var norm2:Float = Math.abs((child2.aabb.lowerBound.x + child2.aabb.upperBound.x) / 2 - center.x)
-								 + Math.abs((child2.aabb.lowerBound.y + child2.aabb.upperBound.y) / 2 - center.y);
+				var norm1:Float = Math.abs((child1.aabb.lowerBound.x + child1.aabb.upperBound.x) / 2 - s_leafCenter.x)
+								 + Math.abs((child1.aabb.lowerBound.y + child1.aabb.upperBound.y) / 2 - s_leafCenter.y);
+				var norm2:Float = Math.abs((child2.aabb.lowerBound.x + child2.aabb.upperBound.x) / 2 - s_leafCenter.x)
+								 + Math.abs((child2.aabb.lowerBound.y + child2.aabb.upperBound.y) / 2 - s_leafCenter.y);
 								 
 				if (norm1 < norm2)
 				{
@@ -411,6 +415,7 @@ class B2DynamicTree
 		
 	}
 	
+	private static var s_oldAABB:B2AABB = new B2AABB();
 	private function removeLeaf(leaf:B2DynamicTreeNode):Void
 	{
 		if ( leaf == m_root)
@@ -448,12 +453,11 @@ class B2DynamicTree
 			// Adjust the ancestor bounds
 			while (node1 != null)
 			{
-				var oldAABB:B2AABB = node1.aabb;
+				s_oldAABB.setAABB(node1.aabb);
 				//node1.aabb = B2AABB.combine(node1.child1.aabb, node1.child2.aabb);
-				node1.aabb = new B2AABB ();
 				node1.aabb.combine (node1.child1.aabb, node1.child2.aabb);
 				
-				if (oldAABB.contains(node1.aabb))
+				if (s_oldAABB.contains(node1.aabb))
 					break;
 					
 				node1 = node1.parent;

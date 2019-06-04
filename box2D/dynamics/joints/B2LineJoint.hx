@@ -377,7 +377,7 @@ class B2LineJoint extends B2Joint
 		
 		// Compute motor Jacobian and effective mass.
 		{
-			m_axis.setV(B2Math.mulMV(xf1.R, m_localXAxis1));
+			B2Math.mulMV(xf1.R, m_localXAxis1, m_axis);
 			//m_a1 = b2Math.b2Cross(d + r1, m_axis);
 			m_a1 = (dX + r1X) * m_axis.y - (dY + r1Y) * m_axis.x;
 			//m_a2 = b2Math.b2Cross(r2, m_axis);
@@ -389,7 +389,7 @@ class B2LineJoint extends B2Joint
 		
 		// Prismatic constraint.
 		{
-			m_perp.setV(B2Math.mulMV(xf1.R, m_localYAxis1));
+			B2Math.mulMV(xf1.R, m_localYAxis1, m_perp);
 			//m_s1 = b2Math.b2Cross(d + r1, m_perp);
 			m_s1 = (dX + r1X) * m_perp.y - (dY + r1Y) * m_perp.x;
 			//m_s2 = b2Math.b2Cross(r2, m_perp);
@@ -654,7 +654,7 @@ class B2LineJoint extends B2Joint
 		
 		if (m_enableLimit)
 		{
-			m_axis = B2Math.mulMV(R1, m_localXAxis1);
+			B2Math.mulMV(R1, m_localXAxis1, m_axis);
 			
 			//m_a1 = b2Math.b2Cross(d + r1, m_axis);
 			m_a1 = (dX + r1X) * m_axis.y - (dY + r1Y) * m_axis.x;
@@ -685,7 +685,7 @@ class B2LineJoint extends B2Joint
 			}
 		}
 		
-		m_perp = B2Math.mulMV(R1, m_localYAxis1);
+		B2Math.mulMV(R1, m_localYAxis1, m_perp);
 		
 		//m_s1 = b2Cross(d + r1, m_perp); 
 		m_s1 = (dX + r1X) * m_perp.y - (dY + r1Y) * m_perp.x;

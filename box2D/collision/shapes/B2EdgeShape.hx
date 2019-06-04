@@ -142,8 +142,8 @@ class B2EdgeShape extends B2Shape
 		//b2Vec2 v0 = offset * normal;
 		var v0:B2Vec2 = new B2Vec2(normal.x * offset, normal.y * offset);
 		
-		var v1:B2Vec2 = B2Math.mulX(xf, m_v1);
-		var v2:B2Vec2 = B2Math.mulX(xf, m_v2);
+		var v1:B2Vec2 = B2Math.mulX(xf, m_v1, new B2Vec2());
+		var v2:B2Vec2 = B2Math.mulX(xf, m_v2, new B2Vec2());
 		
 		var d1:Float = B2Math.dot(normal, v1) - offset;
 		var d2:Float = B2Math.dot(normal, v2) - offset;

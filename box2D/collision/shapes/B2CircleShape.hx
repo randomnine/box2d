@@ -152,14 +152,15 @@ class B2CircleShape extends B2Shape
 	/**
 	* @inheritDoc
 	*/
+	private static var s_transformedPoint:B2Vec2 = new B2Vec2();
 	public override function computeSubmergedArea(
 			normal:B2Vec2,
 			offset:Float,
 			xf:B2Transform,
 			c:B2Vec2):Float
 	{
-		var p:B2Vec2 = B2Math.mulX(xf, m_p);
-		var l:Float = -(B2Math.dot(normal, p) - offset);
+		B2Math.mulX(xf, m_p, s_transformedPoint);
+		var l:Float = -(B2Math.dot(normal, s_transformedPoint) - offset);
 		
 		if (l < -m_radius + B2Math.MIN_VALUE)
 		{
@@ -169,7 +170,7 @@ class B2CircleShape extends B2Shape
 		if (l > m_radius)
 		{
 			//Completely wet
-			c.setV(p);
+			c.setV(s_transformedPoint);
 			return Math.PI * m_radius * m_radius;
 		}
 		
@@ -179,8 +180,8 @@ class B2CircleShape extends B2Shape
 		var area:Float = r2 *( Math.asin(l / m_radius) + Math.PI / 2) + l * Math.sqrt( r2 - l2 );
 		var com:Float = -2 / 3 * Math.pow(r2 - l2, 1.5) / area;
 		
-		c.x = p.x + normal.x * com;
-		c.y = p.y + normal.y * com;
+		c.x = s_transformedPoint.x + normal.x * com;
+		c.y = s_transformedPoint.y + normal.y * com;
 		
 		return area;
 	}
