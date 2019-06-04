@@ -18,6 +18,7 @@
 
 package box2D.dynamics;
 
+import flash.Lib;
 
 import box2D.common.B2Settings;
 import box2D.common.math.B2Math;

@@ -888,7 +888,17 @@ class B2Body
 			return;
 		}
 		
-		m_type = type;
+		if ( m_type == STATIC_BODY || type == STATIC_BODY )
+		{
+			// This body needs to move from one world body list to the other.
+			m_world.removeBodyFromLists(this);
+			m_type = type;
+			m_world.addBodyToLists(this);
+		}
+		else
+		{
+			m_type = type;
+		}
 		
 		resetMassData();
 		

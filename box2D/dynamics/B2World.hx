@@ -67,12 +67,14 @@ class B2World
 		m_destructionListener = null;
 		m_debugDraw = null;
 		
-		m_bodyList = null;
+		m_staticBodyList = null;
+		m_dynamicBodyList = null;
 		m_contactList = null;
 		m_jointList = null;
 		m_controllerList = null;
 		
-		m_bodyCount = 0;
+		m_staticBodyCount = 0;
+		m_dynamicBodyCount = 0;
 		m_jointCount = 0;
 		m_controllerCount = 0;
 		
@@ -137,16 +139,20 @@ class B2World
 	public function setBroadPhase(broadPhase:IBroadPhase) : Void {
 		var oldBroadPhase:IBroadPhase = m_contactManager.m_broadPhase;
 		m_contactManager.m_broadPhase = broadPhase;
-		var b:B2Body = m_bodyList;
-		while (b != null)
+		
+		for (i in 0 ... 2)
 		{
-			var f:B2Fixture = b.m_fixtureList;
-			while (f != null)
+			var b:B2Body = (i == 1) ? m_dynamicBodyList : m_staticBodyList;
+			while (b != null)
 			{
-				f.m_proxy = broadPhase.createProxy(oldBroadPhase.getFatAABB(f.m_proxy), f);
-				f = f.m_next;
+				var f:B2Fixture = b.m_fixtureList;
+				while (f != null)
+				{
+					f.m_proxy = broadPhase.createProxy(oldBroadPhase.getFatAABB(f.m_proxy), f);
+					f = f.m_next;
+				}
+				b = b.m_next;
 			}
-			b = b.m_next;
 		}
 	}
 	
@@ -183,14 +189,7 @@ class B2World
 		var b:B2Body = new B2Body(def, this);
 		
 		// Add to world doubly linked list.
-		b.m_prev = null;
-		b.m_next = m_bodyList;
-		if (m_bodyList != null)
-		{
-			m_bodyList.m_prev = b;
-		}
-		m_bodyList = b;
-		++m_bodyCount;
+		addBodyToLists(b);
 		
 		return b;
 		
@@ -266,22 +265,8 @@ class B2World
 		}
 		b.m_fixtureList = null;
 		b.m_fixtureCount = 0;
-		
-		// Remove world body list.
-		if (b.m_prev != null)
-		{
-			b.m_prev.m_next = b.m_next;
-		}
-		
-		if (b.m_next != null)
-		{
-			b.m_next.m_prev = b.m_prev;
-		}
-		
-		if (b == m_bodyList)
-		{
-			m_bodyList = b.m_next;
-		}
+	
+		removeBodyFromLists(b);
 		
 		b.setUserData(null);
 		b.m_sweep = null;
@@ -294,12 +279,77 @@ class B2World
 		b.m_controllerList = null;
 		b.m_jointList = null;
 		
-		--m_bodyCount;
 		//b->~b2Body();
 		//m_blockAllocator.Free(b, sizeof(b2Body));
 		
 	}
 
+	/**
+	* Removes a body from either the static body list or dynamic body list.
+	* Whichever one it's in, it's expunged.
+	*/	
+	public function removeBodyFromLists(b:B2Body)
+	{
+		if (b.m_prev != null)
+		{
+			b.m_prev.m_next = b.m_next;
+		}
+		
+		if (b.m_next != null)
+		{
+			b.m_next.m_prev = b.m_prev;
+		}
+		
+		if (b == m_dynamicBodyList)
+		{
+			m_dynamicBodyList = b.m_next;
+		}
+		else if (b == m_staticBodyList)
+		{
+			m_staticBodyList = b.m_next;
+		}		
+		
+		if (b.getType() == STATIC_BODY)
+		{
+			--m_dynamicBodyCount;
+		}
+		else
+		{
+			--m_staticBodyCount;
+		}
+	}
+
+	/**
+	* Inserts a new body into the static or dynamic body lists as appropriate.
+	* STATIC bodies go in the static list. All others go in the dynamic list.
+	* (This allows major optimisations on code that ignores static bodies.)
+	*/	
+	public function addBodyToLists(b:B2Body)
+	{
+		if (b.getType() == STATIC_BODY)
+		{
+			b.m_prev = null;
+			b.m_next = m_staticBodyList;
+			if (m_staticBodyList != null)
+			{
+				m_staticBodyList.m_prev = b;
+			}
+			m_staticBodyList = b;
+			++m_staticBodyCount;
+		}
+		else
+		{
+			b.m_prev = null;
+			b.m_next = m_dynamicBodyList;
+			if (m_dynamicBodyList != null)
+			{
+				m_dynamicBodyList.m_prev = b;
+			}
+			m_dynamicBodyList = b;
+			++m_dynamicBodyCount;
+		}		
+	}
+	
 	/**
 	* Create a joint to constrain bodies together. No reference to the definition
 	* is retained. This may cause the connected bodies to cease colliding.
@@ -533,7 +583,7 @@ class B2World
 	*/
 	public function getBodyCount() : Int
 	{
-		return m_bodyCount;
+		return m_staticBodyCount + m_dynamicBodyCount;
 	}
 	
 	/**
@@ -637,7 +687,7 @@ class B2World
 	 */
 	public function clearForces() : Void
 	{
-		var body:B2Body = m_bodyList;
+		var body:B2Body = m_dynamicBodyList;
 		while (body != null)
 		{
 			body.m_force.setZero();
@@ -682,42 +732,45 @@ class B2World
 			
 		if ((flags & B2DebugDraw.e_shapeBit) != 0)
 		{
-			b = m_bodyList;
-			while (b != null)
+			for (i in 0 ... 2)
 			{
-				xf = b.m_xf;
-				f = b.getFixtureList();
-				while (f != null)
+				b = (i == 1) ? m_dynamicBodyList : m_staticBodyList;
+				while (b != null)
 				{
-					s = f.getShape();
-					if (b.isActive() == false)
+					xf = b.m_xf;
+					f = b.getFixtureList();
+					while (f != null)
 					{
-						color.set(0.5, 0.5, 0.3);
-						drawShape(s, xf, color);
+						s = f.getShape();
+						if (b.isActive() == false)
+						{
+							color.set(0.5, 0.5, 0.3);
+							drawShape(s, xf, color);
+						}
+						else if (b.getType() == STATIC_BODY)
+						{
+							color.set(0.5, 0.9, 0.5);
+							drawShape(s, xf, color);
+						}
+						else if (b.getType() == KINEMATIC_BODY)
+						{
+							color.set(0.5, 0.5, 0.9);
+							drawShape(s, xf, color);
+						}
+						else if (b.isAwake() == false)
+						{
+							color.set(0.6, 0.6, 0.6);
+							drawShape(s, xf, color);
+						}
+						else
+						{
+							color.set(0.9, 0.7, 0.7);
+							drawShape(s, xf, color);
+						}
+						f = f.m_next;
 					}
-					else if (b.getType() == STATIC_BODY)
-					{
-						color.set(0.5, 0.9, 0.5);
-						drawShape(s, xf, color);
-					}
-					else if (b.getType() == KINEMATIC_BODY)
-					{
-						color.set(0.5, 0.5, 0.9);
-						drawShape(s, xf, color);
-					}
-					else if (b.isAwake() == false)
-					{
-						color.set(0.6, 0.6, 0.6);
-						drawShape(s, xf, color);
-					}
-					else
-					{
-						color.set(0.9, 0.7, 0.7);
-						drawShape(s, xf, color);
-					}
-					f = f.m_next;
+					b = b.m_next;
 				}
-				b = b.m_next;
 			}
 		}
 		
@@ -764,40 +817,46 @@ class B2World
 			
 			vs = [new B2Vec2(),new B2Vec2(),new B2Vec2(),new B2Vec2()];
 			
-			b= m_bodyList;
-			while (b != null)
+			for (i in 0 ... 2)
 			{
-				if (b.isActive() == false)
+				b = (i == 1) ? m_dynamicBodyList : m_staticBodyList;
+				while (b != null)
 				{
-					b = b.getNext();
-					continue;
-				}
-				f = b.getFixtureList();
-				while (f != null)
-				{
-					var aabb:B2AABB = bp.getFatAABB(f.m_proxy);
-					vs[0].set(aabb.lowerBound.x, aabb.lowerBound.y);
-					vs[1].set(aabb.upperBound.x, aabb.lowerBound.y);
-					vs[2].set(aabb.upperBound.x, aabb.upperBound.y);
-					vs[3].set(aabb.lowerBound.x, aabb.upperBound.y);
+					if (b.isActive() == false)
+					{
+						b = b.getNext();
+						continue;
+					}
+					f = b.getFixtureList();
+					while (f != null)
+					{
+						var aabb:B2AABB = bp.getFatAABB(f.m_proxy);
+						vs[0].set(aabb.lowerBound.x, aabb.lowerBound.y);
+						vs[1].set(aabb.upperBound.x, aabb.lowerBound.y);
+						vs[2].set(aabb.upperBound.x, aabb.upperBound.y);
+						vs[3].set(aabb.lowerBound.x, aabb.upperBound.y);
 
-					m_debugDraw.drawPolygon(vs, 4, color);
-					f = f.getNext();
+						m_debugDraw.drawPolygon(vs, 4, color);
+						f = f.getNext();
+					}
+					b = b.getNext();
 				}
-				b = b.getNext();
 			}
 		}
 		
 		if ((flags & B2DebugDraw.e_centerOfMassBit) != 0)
 		{
-			b = m_bodyList;
-			while (b != null)
+			for (i in 0 ... 2)
 			{
-				xf = s_xf;
-				xf.R = b.m_xf.R;
-				xf.position = b.getWorldCenter();
-				m_debugDraw.drawTransform(xf);
-				b = b.m_next;
+				b = (i == 1) ? m_dynamicBodyList : m_staticBodyList;
+				while (b != null)
+				{
+					xf = s_xf;
+					xf.R = b.m_xf.R;
+					xf.position = b.getWorldCenter();
+					m_debugDraw.drawTransform(xf);
+					b = b.m_next;
+				}
 			}
 		}
 	}
@@ -937,14 +996,23 @@ class B2World
 	}
 
 	/**
-	* Get the world body list. With the returned body, use b2Body::GetNext to get
+	* Get the world dynamic body list. With the returned body, use b2Body::GetNext to get
 	* the next body in the world list. A NULL body indicates the end of the list.
 	* @return the head of the world body list.
 	*/
-	public function getBodyList() : B2Body{
-		return m_bodyList;
+	public function getDynamicBodyList() : B2Body{
+		return m_dynamicBodyList;
 	}
 
+	/**
+	* Get the world static body list. With the returned body, use b2Body::GetNext to get
+	* the next body in the world list. A NULL body indicates the end of the list.
+	* @return the head of the world body list.
+	*/
+	public function getStaticBodyList() : B2Body{
+		return m_staticBodyList;
+	}
+	
 	/**
 	* Get the world joint list. With the returned joint, use b2Joint::GetNext to get
 	* the next joint in the world list. A NULL joint indicates the end of the list.
@@ -991,10 +1059,10 @@ class B2World
 		
 		// Size the island for the worst case.
 		var island:B2Island = m_island;
-		island.initialize(m_bodyCount, m_contactManager.m_contactCount, m_jointCount, null, m_contactManager.m_contactListener, m_contactSolver);
+		island.initialize(m_dynamicBodyCount, m_contactManager.m_contactCount, m_jointCount, null, m_contactManager.m_contactListener, m_contactSolver);
 		
 		// Clear all the island flags.
-		b = m_bodyList;
+		b = m_dynamicBodyList;
 		while (b != null)
 		{
 			b.m_flags &= ~B2Body.e_islandFlag;
@@ -1014,10 +1082,12 @@ class B2World
 		}
 		
 		// Build and simulate all awake islands.
-		var stackSize:Int = m_bodyCount;
+		var stackSize:Int = m_dynamicBodyCount;
 		//b2Body** stack = (b2Body**)m_stackAllocator.Allocate(stackSize * sizeof(b2Body*));
 		var stack:Array <B2Body> = s_stack;
-		var seed:B2Body = m_bodyList;
+		
+		// The seed can be dynamic or kinematic, so only use the dynamic body list.
+		var seed:B2Body = m_dynamicBodyList;
 		while (seed != null)
 		{
 			if ((seed.m_flags & B2Body.e_islandFlag) != 0)
@@ -1027,13 +1097,6 @@ class B2World
 			}
 			
 			if (seed.isAwake() == false || seed.isActive() == false)
-			{
-				seed = seed.m_next;
-				continue;
-			}
-			
-			// The seed can be dynamic or kinematic.
-			if (seed.getType() == STATIC_BODY)
 			{
 				seed = seed.m_next;
 				continue;
@@ -1163,7 +1226,7 @@ class B2World
 		}
 		
 		// Synchronize fixutres, check for out of range bodies.
-		b = m_bodyList;
+		b = m_dynamicBodyList;
 		while (b != null)
 		{
 			if (b.isAwake() == false || b.isActive() == false)
@@ -1171,13 +1234,7 @@ class B2World
 				b = b.m_next;
 				continue;
 			}
-			
-			if (b.getType() == STATIC_BODY)
-			{
-				b = b.m_next;
-				continue;
-			}
-			
+
 			// Update fixtures (for broad-phase).
 			b.synchronizeFixtures();
 			b = b.m_next;
@@ -1205,7 +1262,7 @@ class B2World
 		
 		// Reserve an island and a queue for TOI island solution.
 		var island:B2Island = m_island;
-		island.initialize(m_bodyCount, B2Settings.b2_maxTOIContactsPerIsland, B2Settings.b2_maxTOIJointsPerIsland, null, m_contactManager.m_contactListener, m_contactSolver);
+		island.initialize(m_dynamicBodyCount, B2Settings.b2_maxTOIContactsPerIsland, B2Settings.b2_maxTOIJointsPerIsland, null, m_contactManager.m_contactListener, m_contactSolver);
 		
 		//Simple one pass queue
 		//Relies on the fact that we're only making one pass
@@ -1218,12 +1275,15 @@ class B2World
 		
 		var queue:Array <B2Body> = s_queue;
 		
-		b = m_bodyList;
-		while (b != null)
+		for (i in 0 ... 2)
 		{
-			b.m_flags &= ~B2Body.e_islandFlag;
-			b.m_sweep.t0 = 0.0;
-			b = b.m_next;
+			b = (i == 1) ? m_dynamicBodyList : m_staticBodyList;
+			while (b != null)
+			{
+				b.m_flags &= ~B2Body.e_islandFlag;
+				b.m_sweep.t0 = 0.0;
+				b = b.m_next;
+			}
 		}
 		
 		var c:B2Contact = m_contactList;
@@ -1660,12 +1720,14 @@ class B2World
 	private var m_contactSolver:B2ContactSolver;
 	private var m_island:B2Island;
 
-	public var m_bodyList:B2Body;
+	public var m_staticBodyList:B2Body;
+	public var m_dynamicBodyList:B2Body;
 	private var m_jointList:B2Joint;
 
 	public var m_contactList:B2Contact;
 
-	private var m_bodyCount:Int;
+	private var m_staticBodyCount:Int;
+	private var m_dynamicBodyCount:Int;
 	private var m_jointCount:Int;
 	private var m_controllerList:B2Controller;
 	private var m_controllerCount:Int;
