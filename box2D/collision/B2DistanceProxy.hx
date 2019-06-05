@@ -120,7 +120,7 @@ class B2DistanceProxy
 	
 	public function new () {
 		
-		m_vertices = new Array <B2Vec2> ();
+		m_vertices = null;
 		
 	}
 	

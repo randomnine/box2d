@@ -33,6 +33,13 @@ class B2SeparationFunction
 	//public static var e_faceA:Int = 0x02;
 	//public static var e_faceB:Int = 0x04;
 	
+	private static var s_pA:B2Vec2 = new B2Vec2();
+	private static var s_dA:B2Vec2 = new B2Vec2();
+	private static var s_pB:B2Vec2 = new B2Vec2();
+	private static var s_dB:B2Vec2 = new B2Vec2();
+	private static var s_r:B2Vec2 = new B2Vec2();
+	private static var s_localPointA:B2Vec2 = new B2Vec2();
+	private static var s_localPointB:B2Vec2 = new B2Vec2();
 	public function initialize(cache:B2SimplexCache,
 								proxyA:B2DistanceProxy, transformA:B2Transform,
 								proxyB:B2DistanceProxy, transformB:B2Transform):Void
@@ -42,10 +49,10 @@ class B2SeparationFunction
 		var count:Int = cache.count;
 		B2Settings.b2Assert(0 < count && count < 3);
 		
-		var localPointA:B2Vec2 = new B2Vec2 ();
+		var localPointA:B2Vec2;
 		var localPointA1:B2Vec2;
 		var localPointA2:B2Vec2;
-		var localPointB:B2Vec2 = new B2Vec2 ();
+		var localPointB:B2Vec2;
 		var localPointB1:B2Vec2;
 		var localPointB2:B2Vec2;
 		var pointAX:Float;
@@ -158,18 +165,20 @@ class B2SeparationFunction
 			localPointB1 = m_proxyB.getVertex(cache.indexB[0]);
 			localPointB2 = m_proxyB.getVertex(cache.indexB[1]);
 			
-			var pA:B2Vec2 = B2Math.mulX(transformA, localPointA, new B2Vec2());
-			var dA:B2Vec2 = B2Math.mulMV(transformA.R, B2Math.subtractVV(localPointA2, localPointA1, new B2Vec2()), new B2Vec2());
-			var pB:B2Vec2 = B2Math.mulX(transformB, localPointB, new B2Vec2());
-			var dB:B2Vec2 = B2Math.mulMV(transformB.R, B2Math.subtractVV(localPointB2, localPointB1, new B2Vec2()), new B2Vec2());
+			s_localPointA.set(0, 0);
+			B2Math.mulX(transformA, s_localPointA, s_pA);
+			B2Math.mulMV(transformA.R, B2Math.subtractVV(localPointA2, localPointA1, s_dA), s_dA);
+			s_localPointB.set(0, 0);
+			B2Math.mulX(transformB, s_localPointB, s_pB);
+			B2Math.mulMV(transformB.R, B2Math.subtractVV(localPointB2, localPointB1, s_dB), s_dB);
 			
-			var a:Float = dA.x * dA.x + dA.y * dA.y;
-			var e:Float = dB.x * dB.x + dB.y * dB.y;
-			var r:B2Vec2 = B2Math.subtractVV(dB, dA, new B2Vec2());
-			var c:Float = dA.x * r.x + dA.y * r.y;
-			var f:Float = dB.x * r.x + dB.y * r.y;
+			var a:Float = s_dA.x * s_dA.x + s_dA.y * s_dA.y;
+			var e:Float = s_dB.x * s_dB.x + s_dB.y * s_dB.y;
+			B2Math.subtractVV(s_dB, s_dA, s_r);
+			var c:Float = s_dA.x * s_r.x + s_dA.y * s_r.y;
+			var f:Float = s_dB.x * s_r.x + s_dB.y * s_r.y;
 			
-			var b:Float = dA.x * dB.x + dA.y * dB.y;
+			var b:Float = s_dA.x * s_dB.x + s_dA.y * s_dB.y;
 			var denom:Float = a * e-b * b;
 			
 			s = 0.0;
@@ -186,13 +195,11 @@ class B2SeparationFunction
 			}
 			
 			//b2Vec2 localPointA = localPointA1 + s * (localPointA2 - localPointA1);
-			localPointA = new B2Vec2();
-			localPointA.x = localPointA1.x + s * (localPointA2.x - localPointA1.x);
-			localPointA.y = localPointA1.y + s * (localPointA2.y - localPointA1.y);
+			s_localPointA.x = localPointA1.x + s * (localPointA2.x - localPointA1.x);
+			s_localPointA.y = localPointA1.y + s * (localPointA2.y - localPointA1.y);
 			//b2Vec2 localPointB = localPointB1 + s * (localPointB2 - localPointB1);
-			localPointB = new B2Vec2();
-			localPointB.x = localPointB1.x + s * (localPointB2.x - localPointB1.x);
-			localPointB.y = localPointB1.y + s * (localPointB2.y - localPointB1.y);
+			s_localPointB.x = localPointB1.x + s * (localPointB2.x - localPointB1.x);
+			s_localPointB.y = localPointB1.y + s * (localPointB2.y - localPointB1.y);
 			
 			if (s == 0.0 || s == 1.0)
 			{
@@ -200,7 +207,7 @@ class B2SeparationFunction
 				B2Math.crossVF(B2Math.subtractVV(localPointB2, localPointB1, m_axis), 1.0, m_axis);
 				m_axis.normalize();
                 
-				m_localPoint = localPointB;
+				m_localPoint = s_localPointB.copy();
 				
 				//normal = b2Math.b2MulMV(transformB.R, m_axis);
 				tVec = m_axis;
@@ -213,7 +220,7 @@ class B2SeparationFunction
 				pointBX = transformB.position.x + (tMat.col1.x * tVec.x + tMat.col2.x * tVec.y);
 				pointBY = transformB.position.y + (tMat.col1.y * tVec.x + tMat.col2.y * tVec.y);
 				//pointA = b2Math.b2MulX(transformA, localPointA);
-				tVec = localPointA;
+				tVec = s_localPointA;
 				tMat = transformA.R;
 				pointAX = transformA.position.x + (tMat.col1.x * tVec.x + tMat.col2.x * tVec.y);
 				pointAY = transformA.position.y + (tMat.col1.y * tVec.x + tMat.col2.y * tVec.y);
@@ -230,7 +237,7 @@ class B2SeparationFunction
 				m_type = B2SeparationFunctionType.FACE_A;
 				B2Math.crossVF(B2Math.subtractVV(localPointA2, localPointA1, m_axis), 1.0, m_axis);
 				
-				m_localPoint = localPointA;
+				m_localPoint = s_localPointA.copy();
 				
 				//normal = b2Math.b2MulMV(transformA.R, m_axis);
 				tVec = m_axis;
@@ -243,7 +250,7 @@ class B2SeparationFunction
 				pointAX = transformA.position.x + (tMat.col1.x * tVec.x + tMat.col2.x * tVec.y);
 				pointAY = transformA.position.y + (tMat.col1.y * tVec.x + tMat.col2.y * tVec.y);
 				//pointB = b2Math.b2MulX(transformB, localPointB);
-				tVec = localPointB;
+				tVec = s_localPointB;
 				tMat = transformB.R;
 				pointBX = transformB.position.x + (tMat.col1.x * tVec.x + tMat.col2.x * tVec.y);
 				pointBY = transformB.position.y + (tMat.col1.y * tVec.x + tMat.col2.y * tVec.y);

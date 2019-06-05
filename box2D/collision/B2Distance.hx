@@ -38,6 +38,9 @@ private static var b2_gjkCalls:Int = 0;
 private static var b2_gjkIters:Int = 0;
 private static var b2_gjkMaxIters:Int = 0;
 
+private static var s_closestPoint:B2Vec2 = new B2Vec2();
+private static var s_d:B2Vec2 = new B2Vec2();
+private static var s_p:B2Vec2 = new B2Vec2();
 private static var s_vec:B2Vec2 = new B2Vec2();
 private static var s_simplex:B2Simplex = new B2Simplex();
 private static var s_saveA:Array <Int> = new Array <Int> ();
@@ -66,12 +69,11 @@ public static function distance(output:B2DistanceOutput, cache:B2SimplexCache, i
 	var saveB:Array <Int> = s_saveB;
 	var saveCount:Int = 0;
 	
-	var closestPoint:B2Vec2 = simplex.getClosestPoint(new B2Vec2());
-	var distanceSqr1:Float = closestPoint.lengthSquared();
+	simplex.getClosestPoint(s_closestPoint);
+	var distanceSqr1:Float = s_closestPoint.lengthSquared();
 	var distanceSqr2:Float = distanceSqr1;
 	
 	var i:Int;
-	var p:B2Vec2;
 	
 	// Main iteration loop
 	var iter:Int = 0;
@@ -107,8 +109,8 @@ public static function distance(output:B2DistanceOutput, cache:B2SimplexCache, i
 		}
 		
 		// Compute the closest point.
-		p = simplex.getClosestPoint(new B2Vec2());
-		distanceSqr2 = p.lengthSquared();
+		simplex.getClosestPoint(s_p);
+		distanceSqr2 = s_p.lengthSquared();
 		
 		
 		// Ensure progress
@@ -119,10 +121,10 @@ public static function distance(output:B2DistanceOutput, cache:B2SimplexCache, i
 		distanceSqr1 = distanceSqr2;
 		
 		// Get search direction.
-		var d:B2Vec2 = simplex.getSearchDirection(new B2Vec2());
+		simplex.getSearchDirection(s_d);
 		
 		// Ensure the search direction is numerically fit.
-		if (d.lengthSquared() < B2Math.MIN_VALUE * B2Math.MIN_VALUE)
+		if (s_d.lengthSquared() < B2Math.MIN_VALUE * B2Math.MIN_VALUE)
 		{
 			// THe origin is probably contained by a line segment or triangle.
 			// Thus the shapes are overlapped.
@@ -135,9 +137,9 @@ public static function distance(output:B2DistanceOutput, cache:B2SimplexCache, i
 		
 		// Compute a tentative new simplex vertex using support points
 		var vertex:B2SimplexVertex = vertices[simplex.m_count];
-		vertex.indexA = Std.int (proxyA.getSupport(B2Math.mulTMV(transformA.R, d.getNegative(s_vec), s_vec)));
+		vertex.indexA = Std.int (proxyA.getSupport(B2Math.mulTMV(transformA.R, s_d.getNegative(s_vec), s_vec)));
 		B2Math.mulX(transformA, proxyA.getVertex(vertex.indexA), vertex.wA);
-		vertex.indexB = Std.int (proxyB.getSupport(B2Math.mulTMV(transformB.R, d, s_vec)));
+		vertex.indexB = Std.int (proxyB.getSupport(B2Math.mulTMV(transformB.R, s_d, s_vec)));
 		B2Math.mulX(transformB, proxyB.getVertex(vertex.indexB), vertex.wB);
 		B2Math.subtractVV(vertex.wB, vertex.wA, vertex.w);
 		
@@ -198,11 +200,8 @@ public static function distance(output:B2DistanceOutput, cache:B2SimplexCache, i
 		{
 			// Shapes are overlapped when radii are considered.
 			// Move the witness points to the middle.
-			p = new B2Vec2();
-			p.x = .5 * (output.pointA.x + output.pointB.x);
-			p.y = .5 * (output.pointA.y + output.pointB.y);
-			output.pointA.x = output.pointB.x = p.x;
-			output.pointA.y = output.pointB.y = p.y;
+			output.pointA.x = output.pointB.x = .5 * (output.pointA.x + output.pointB.x);
+			output.pointA.y = output.pointB.y = .5 * (output.pointA.y + output.pointB.y);
 			output.distance = 0.0;
 		}
 	}
