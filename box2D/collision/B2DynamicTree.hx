@@ -175,19 +175,18 @@ class B2DynamicTree
 	 * <code>fuction callback(proxy:B2DynamicTreeNode):Bool</code>
 	 * and should return false to trigger premature termination.
 	 */
+	var s_stack:Array <B2DynamicTreeNode> = new Array <B2DynamicTreeNode>();
 	public function query(callbackMethod:B2DynamicTreeNode -> Bool, aabb:B2AABB):Void
 	{
 		if (m_root == null)
 			return;
 			
-		var stack:Array <B2DynamicTreeNode> = new Array <B2DynamicTreeNode>();
-		
 		var count:Int = 0;
-		stack[count++] = m_root;
+		s_stack[count++] = m_root;
 		
 		while (count > 0)
 		{
-			var node:B2DynamicTreeNode = stack[--count];
+			var node:B2DynamicTreeNode = s_stack[--count];
 			
 			if (node.aabb.testOverlap(aabb))
 			{
@@ -200,8 +199,8 @@ class B2DynamicTree
 				else
 				{
 					// No stack limit, so no assert
-					stack[count++] = node.child1;
-					stack[count++] = node.child2;
+					s_stack[count++] = node.child1;
+					s_stack[count++] = node.child2;
 				}
 			}
 		}

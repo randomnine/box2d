@@ -120,19 +120,16 @@ class B2DynamicTreeBroadPhase implements IBroadPhase
 		m_pairCount = 0;
 
 		// Perform tree queries for all moving queries
-		for (queryProxy in m_moveBuffer)
+		// Reset move buffer
+		while (m_moveBuffer.length > 0)
 		{
-			m_queryProxy = queryProxy;
+			m_queryProxy = m_moveBuffer.pop();
 
 			// We have to query the tree with the fat AABB so that
 			// we don't fail to create a pair that may touch later.
-			var fatAABB:B2AABB = m_tree.getFatAABB(queryProxy);
+			var fatAABB:B2AABB = m_tree.getFatAABB(m_queryProxy);
 			m_tree.query(updatePairsQueryCallback, fatAABB);
 		}
-		
-		// Reset move buffer
-		m_moveBuffer = new Array <B2DynamicTreeNode> ();
-		//m_moveBuffer.length = 0;
 		
 		// Sort the pair buffer to expose duplicates.
 		// TODO: Something more sensible
