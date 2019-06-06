@@ -135,7 +135,7 @@ class B2ContactManager
 
 	public function findNewContacts():Void
 	{
-		m_broadPhase.updatePairs(addPair);
+		m_broadPhase.updatePairs(this);
 	}
 	
 	static private var s_evalCP:B2ContactPoint = new B2ContactPoint ();

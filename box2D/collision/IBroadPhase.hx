@@ -1,6 +1,8 @@
 ﻿package box2D.collision;
 
 import box2D.common.math.B2Vec2;
+import box2D.dynamics.B2ContactManager;
+
 /**
  * Interface for objects tracking overlap of many AABBs.
  */
@@ -43,7 +45,7 @@ interface IBroadPhase
 	/**
 	 * Update the pairs. This results in pair callbacks. This can only add pairs.
 	 */
-	function updatePairs(callbackMethod:Dynamic):Void;
+	function updatePairs(contactManager:B2ContactManager):Void;
 	
 	/**
 	 * Query an AABB for overlapping proxies. The callback class

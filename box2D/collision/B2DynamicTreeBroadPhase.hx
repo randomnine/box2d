@@ -2,6 +2,7 @@
 
 
 import box2D.common.math.B2Vec2;
+import box2D.dynamics.B2ContactManager;
 
 	
 /**
@@ -115,7 +116,7 @@ class B2DynamicTreeBroadPhase implements IBroadPhase
 	/**
 	 * Update the pairs. This results in pair callbacks. This can only add pairs.
 	 */
-	public function updatePairs(callbackMethod:Dynamic):Void
+	public function updatePairs(contactManager:B2ContactManager):Void
 	{
 		m_pairCount = 0;
 
@@ -150,7 +151,7 @@ class B2DynamicTreeBroadPhase implements IBroadPhase
 				var primaryPair:B2DynamicTreePair = m_pairBuffer[i];
 				var userDataA:Dynamic = m_tree.getUserData(primaryPair.proxyA);
 				var userDataB:Dynamic = m_tree.getUserData(primaryPair.proxyB);
-				callbackMethod(userDataA, userDataB);
+				contactManager.addPair(userDataA, userDataB);
 				++i;
 				
 				// Skip any duplicate pairs
