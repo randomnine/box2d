@@ -44,8 +44,9 @@ class B2DistanceProxy
 			case B2ShapeType.CIRCLE_SHAPE:
 			{
 				var circle:B2CircleShape = cast (shape, B2CircleShape);
-				m_vertices = new Array <B2Vec2> ();
-				m_vertices[0] = circle.m_p;
+				m_isCircle = true;
+				m_circleVertex = circle.m_p;
+				m_polygonVertices = null;
 				m_count = 1;
 				m_radius = circle.m_radius;
 			}
@@ -53,7 +54,9 @@ class B2DistanceProxy
 			case B2ShapeType.POLYGON_SHAPE:
 			{
 				var polygon:B2PolygonShape =  cast (shape, B2PolygonShape);
-				m_vertices = polygon.m_vertices;
+				m_isCircle = false;
+				m_circleVertex = null;
+				m_polygonVertices = polygon.m_vertices;
 				m_count = polygon.m_vertexCount;
 				m_radius = polygon.m_radius;
 			}
@@ -68,18 +71,25 @@ class B2DistanceProxy
 	 */
 	public function getSupport(d:B2Vec2):Float
 	{
-		var bestIndex:Int = 0;
-		var bestValue:Float = m_vertices[0].x * d.x + m_vertices[0].y * d.y;
-		for (i in 1...m_count)
+		if (m_isCircle)
 		{
-			var value:Float = m_vertices[i].x * d.x + m_vertices[i].y * d.y;
-			if (value > bestValue)
-			{
-				bestIndex = i;
-				bestValue = value;
-			}
+			return 0;
 		}
-		return bestIndex;
+		else
+		{
+			var bestIndex:Int = 0;
+			var bestValue:Float = m_polygonVertices[0].x * d.x + m_polygonVertices[0].y * d.y;
+			for (i in 1...m_count)
+			{
+				var value:Float = m_polygonVertices[i].x * d.x + m_polygonVertices[i].y * d.y;
+				if (value > bestValue)
+				{
+					bestIndex = i;
+					bestValue = value;
+				}
+			}
+			return bestIndex;
+		}
 	}
 	
 	/**
@@ -87,19 +97,27 @@ class B2DistanceProxy
 	 */
 	public function getSupportVertex(d:B2Vec2):B2Vec2
 	{
-		var bestIndex:Int = 0;
-		var bestValue:Float = m_vertices[0].x * d.x + m_vertices[0].y * d.y;
-		for (i in 1...m_count)
+		if (m_isCircle)
 		{
-			var value:Float = m_vertices[i].x * d.x + m_vertices[i].y * d.y;
-			if (value > bestValue)
-			{
-				bestIndex = i;
-				bestValue = value;
-			}
+			return m_circleVertex;
 		}
-		return m_vertices[bestIndex];
+		else
+		{
+			var bestIndex:Int = 0;
+			var bestValue:Float = m_polygonVertices[0].x * d.x + m_polygonVertices[0].y * d.y;
+			for (i in 1...m_count)
+			{
+				var value:Float = m_polygonVertices[i].x * d.x + m_polygonVertices[i].y * d.y;
+				if (value > bestValue)
+				{
+					bestIndex = i;
+					bestValue = value;
+				}
+			}
+			return m_polygonVertices[bestIndex];
+		}
 	}
+	
 	/**
 	 * Get the vertex count.
 	 */
@@ -114,17 +132,28 @@ class B2DistanceProxy
 	public function getVertex(index:Int):B2Vec2
 	{
 		B2Settings.b2Assert(0 <= index && index < m_count);
-		return m_vertices[index];
+		if (m_isCircle)
+		{
+			return m_circleVertex;
+		}
+		else
+		{
+			return m_polygonVertices[index];
+		}
 	}
 	
 	
 	public function new () {
 		
-		m_vertices = null;
+		m_isCircle = false;
+		m_circleVertex = null;
+		m_polygonVertices = null;
 		
 	}
 	
-	public var m_vertices:Array <B2Vec2>;
+	public var m_isCircle:Bool;
+	public var m_circleVertex:B2Vec2;
+	public var m_polygonVertices:Array <B2Vec2>;
 	public var m_count:Int = 0;
 	public var m_radius:Float = 0;
 }
